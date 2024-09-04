@@ -103,19 +103,22 @@ export default function Home() {
 		try {
 			const dataUrl = await toPng(snippetRef.current, {
 				cacheBust: true,
-				pixelRatio: 1,
-				width: 600,
-				height: 600,
+				pixelRatio: 2,
+				width: 1080,
+				height: 1080,
+				skipAutoScale: true,
 				style: {
+					transform: 'scale(1)',
 					transformOrigin: 'center'
 				}
 			});
 
-			if (navigator.share) {
-				const blob = await (await fetch(dataUrl)).blob();
-				const file = new File([blob], 'code-snippet.png', {
-					type: 'image/png'
-				});
+			const blob = await (await fetch(dataUrl)).blob();
+			const file = new File([blob], 'code-snippet.png', {
+				type: 'image/png'
+			});
+
+			if (navigator.canShare && navigator.canShare({ files: [file] })) {
 				navigator
 					.share({
 						title: 'Check out my code snippet!',
@@ -127,8 +130,14 @@ export default function Home() {
 					})
 					.catch(console.error);
 			} else {
+				const link = document.createElement('a');
+				link.href = dataUrl;
+				link.download = 'code-snippet.png';
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
 				alert(
-					'Web Share API is not supported in your browser. You can manually download the image and share it on Instagram.'
+					'File sharing is not supported in your browser. The image has been downloaded instead.'
 				);
 			}
 		} catch (err) {
@@ -163,7 +172,6 @@ export default function Home() {
 						<span className='sr-only'>Toggle theme</span>
 					</Button>
 				</div>
-
 				<Card className='p-4 md:p-6 space-y-6 bg-white dark:bg-gray-800 shadow-xl'>
 					<div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
 						<motion.div
@@ -187,7 +195,6 @@ export default function Home() {
 									onChange={(e) => setCode(e.target.value)}
 								/>
 							</div>
-
 							<div className='grid grid-cols-2 gap-4'>
 								<div className='space-y-2'>
 									<Label
@@ -211,6 +218,7 @@ export default function Home() {
 											<SelectItem value='python'>Python</SelectItem>
 											<SelectItem value='java'>Java</SelectItem>
 											<SelectItem value='csharp'>C#</SelectItem>
+											<SelectItem value='csharp'>Other</SelectItem>
 										</SelectContent>
 									</Select>
 								</div>
