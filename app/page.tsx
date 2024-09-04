@@ -79,8 +79,8 @@ export default function Home() {
 			const dataUrl = await toPng(snippetRef.current, {
 				cacheBust: true,
 				pixelRatio: 2,
-				width: 1080,
-				height: 1080,
+				width: snippetRef.current.clientWidth,
+				height: snippetRef.current.clientHeight,
 				skipAutoScale: true,
 				style: {
 					transform: 'scale(1)',
@@ -104,8 +104,8 @@ export default function Home() {
 			const dataUrl = await toPng(snippetRef.current, {
 				cacheBust: true,
 				pixelRatio: 2,
-				width: 1080,
-				height: 1080,
+				width: snippetRef.current.clientWidth,
+				height: snippetRef.current.clientHeight,
 				skipAutoScale: true,
 				style: {
 					transform: 'scale(1)',
@@ -222,7 +222,6 @@ export default function Home() {
 										</SelectContent>
 									</Select>
 								</div>
-
 								<div className='space-y-2'>
 									<Label
 										htmlFor='font-size-slider'
@@ -240,7 +239,6 @@ export default function Home() {
 									/>
 								</div>
 							</div>
-
 							<Button
 								className='w-full bg-blue-600 hover:bg-blue-700 text-white'
 								onClick={handleGenerateSnippet}
@@ -248,7 +246,6 @@ export default function Home() {
 								Generate Snippet
 							</Button>
 						</motion.div>
-
 						<motion.div
 							className='space-y-2'
 							initial={{ x: 50, opacity: 0 }}
@@ -259,7 +256,7 @@ export default function Home() {
 								Generated Snippet
 							</Label>
 							{generatedSnippet && (
-								<div className='relative w-full pt-[100%]'>
+								<div className='relative w-full pt-[100%]  p-4 rounded-lg bg-white shadow-lg'>
 									<div
 										ref={snippetRef}
 										className='absolute top-0 left-0 w-full h-full rounded-lg overflow-hidden shadow-2xl bg-gradient-to-br from-purple-500 to-pink-500 p-4'
