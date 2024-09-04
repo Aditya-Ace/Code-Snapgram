@@ -26,9 +26,6 @@ export default function RootLayout({
 					disableTransitionOnChange
 				>
 					<div className='min-h-screen bg-background text-foreground'>
-						<nav className='p-4 flex justify-end'>
-							<ThemeToggle />
-						</nav>
 						{children}
 					</div>
 				</ThemeProvider>
