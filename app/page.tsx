@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -56,7 +55,6 @@ export default function Home() {
 					});
 					break;
 				default:
-					// For other languages, we'll just return the original code
 					return code;
 			}
 			return formattedCode.trim();
@@ -67,6 +65,7 @@ export default function Home() {
 	};
 
 	const handleGenerateSnippet = async () => {
+		setLanguage(language);
 		const beautifiedCode = await beautifyCode(code, language);
 		setGeneratedSnippet(beautifiedCode);
 	};
@@ -218,7 +217,8 @@ export default function Home() {
 											<SelectItem value='python'>Python</SelectItem>
 											<SelectItem value='java'>Java</SelectItem>
 											<SelectItem value='csharp'>C#</SelectItem>
-											<SelectItem value='csharp'>Other</SelectItem>
+											<SelectItem value='cpp'>C++</SelectItem>
+											<SelectItem value='plaintext'>Other</SelectItem>
 										</SelectContent>
 									</Select>
 								</div>
@@ -256,12 +256,13 @@ export default function Home() {
 								Generated Snippet
 							</Label>
 							{generatedSnippet && (
-								<div className='relative w-full pt-[100%]  p-4 rounded-lg bg-white shadow-lg'>
+								<div className='relative w-full p-4 rounded-lg shadow-lg overflow-hidden'>
 									<div
 										ref={snippetRef}
-										className='absolute top-0 left-0 w-full h-full rounded-lg overflow-hidden shadow-2xl bg-gradient-to-br from-purple-500 to-pink-500 p-4'
+										className='rounded-lg overflow-hidden shadow-2xl bg-gradient-to-br from-purple-500 to-pink-500 p-4'
+										style={{ height: 'auto' }} // Set a fixed height for the container
 									>
-										<div className='rounded-lg overflow-hidden bg-gray-900 p-4 relative w-full h-full flex flex-col'>
+										<div className='rounded-lg overflow-y-auto bg-gray-900 p-4 relative flex flex-col h-full'>
 											<div className='absolute top-2 left-2 flex space-x-1'>
 												<div className='w-3 h-3 rounded-full bg-red-500'></div>
 												<div className='w-3 h-3 rounded-full bg-yellow-500'></div>
@@ -275,9 +276,9 @@ export default function Home() {
 													padding: '1rem',
 													borderRadius: '0.5rem',
 													background: 'transparent',
-													overflowY: 'auto',
 													margin: 0,
-													flex: 1
+													flex: 1,
+													overflowY: 'auto' // Ensure scrolling when content overflows
 												}}
 											>
 												{generatedSnippet}
