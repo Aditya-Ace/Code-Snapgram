@@ -78,9 +78,9 @@ export default function Home() {
 		try {
 			const dataUrl = await toPng(snippetRef.current, {
 				cacheBust: true,
-				pixelRatio: 1,
-				width: 540,
-				height: 540,
+				pixelRatio: 2,
+				width: 1080,
+				height: 1080,
 				skipAutoScale: true,
 				style: {
 					transform: 'scale(1)',
