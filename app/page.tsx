@@ -285,22 +285,35 @@ export default function Home() {
 								</div>
 							)}
 							{generatedSnippet && (
-								<div className='flex space-x-2 mt-4'>
-									<Button
-										onClick={handleDownload}
-										className='flex-1 bg-green-600 hover:bg-green-700 text-white'
-									>
-										<Download className='w-4 h-4 mr-2' />
-										Download
-									</Button>
-									<Button
-										onClick={handleShare}
-										className='flex-1 bg-indigo-600 hover:bg-indigo-700 text-white'
-									>
-										<Share2 className='w-4 h-4 mr-2' />
-										Share
-									</Button>
-								</div>
+								<>
+									<div className='flex space-x-2 mt-4'>
+										<Button
+											onClick={handleDownload}
+											className='flex-1 bg-green-600 hover:bg-green-700 text-white'
+										>
+											<Download className='w-4 h-4 mr-2' />
+											Download
+										</Button>
+										<Button
+											onClick={handleShare}
+											className='flex-1 bg-indigo-600 hover:bg-indigo-700 text-white'
+										>
+											<Share2 className='w-4 h-4 mr-2' />
+											Share
+										</Button>
+									</div>
+									<div className='text-sm text-gray-600 dark:text-gray-400 mt-2'>
+										<p>
+											<em>Note: Downloaded image will be in PNG format.</em>
+										</p>
+										<p>
+											<em>
+												Note: For best results, zoom in or crop the image while
+												sharing.
+											</em>
+										</p>
+									</div>
+								</>
 							)}
 						</motion.div>
 					</div>
