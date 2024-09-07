@@ -271,6 +271,19 @@ export default function CodeSnapgram() {
 		) {
 			return 'javascript';
 		}
+		// for c++
+		if (
+			trimmedCode.includes('include') ||
+			trimmedCode.includes('iostream') ||
+			trimmedCode.includes('using namespace std') ||
+			trimmedCode.includes('int main()') ||
+			trimmedCode.includes('cout') ||
+			trimmedCode.includes('cin') ||
+			trimmedCode.includes('return 0') ||
+			trimmedCode.includes('return 0;')
+		) {
+			return 'cpp';
+		}
 		return 'plaintext';
 	};
 
@@ -374,6 +387,7 @@ export default function CodeSnapgram() {
 											<SelectItem value='typescript'>TypeScript</SelectItem>
 											<SelectItem value='html'>HTML</SelectItem>
 											<SelectItem value='css'>CSS</SelectItem>
+											<SelectItem value='cpp'>C++</SelectItem>
 											<SelectItem value='plaintext'>Other</SelectItem>
 										</SelectContent>
 									</Select>
