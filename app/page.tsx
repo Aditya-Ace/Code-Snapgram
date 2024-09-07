@@ -88,19 +88,30 @@ export default function CodeSnapgram() {
 					case 'typescript':
 						formattedCode = await prettier.format(code, {
 							parser: language === 'javascript' ? 'babel' : 'typescript',
-							plugins: [parserBabel, parserTypescript]
+							plugins: [parserBabel, parserTypescript],
+							proseWrap: 'always',
+							semi: true,
+							singleQuote: true,
+							useTabs: true,
+							tabWidth: 2
 						});
 						break;
 					case 'html':
 						formattedCode = await prettier.format(code, {
 							parser: 'html',
-							plugins: [parserHtml]
+							plugins: [parserHtml],
+							proseWrap: 'always',
+							useTabs: true,
+							tabWidth: 2
 						});
 						break;
 					case 'css':
 						formattedCode = await prettier.format(code, {
 							parser: 'css',
-							plugins: [parserCss]
+							plugins: [parserCss],
+							proseWrap: 'always',
+							useTabs: true,
+							tabWidth: 2
 						});
 						break;
 					default:
