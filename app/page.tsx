@@ -672,7 +672,7 @@ export default function CodeSnapgram() {
 					<DialogHeader>
 						<DialogTitle>Payment Required</DialogTitle>
 						<DialogDescription>
-							To customize the message, please pay Pay &#8377;25 using UPI.
+							To customize the message, please pay &#8377;25 using UPI.
 						</DialogDescription>
 					</DialogHeader>
 					<div className='space-y-4'>
