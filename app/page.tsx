@@ -49,8 +49,7 @@ import {
 	DialogContent,
 	DialogDescription,
 	DialogHeader,
-	DialogTitle,
-	DialogTrigger
+	DialogTitle
 } from '@/components/ui/dialog';
 
 export default function CodeSnapgram() {
@@ -71,6 +70,7 @@ export default function CodeSnapgram() {
 	const [isCustomMessagePaid, setIsCustomMessagePaid] = useState(false);
 	const [upiId, setUpiId] = useState('');
 	const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+	const [isDownloading, setIsDownloading] = useState(false);
 
 	const beautifyCode = async (code: string, language: string) => {
 		if (!autoFormat) return code;
@@ -117,6 +117,7 @@ export default function CodeSnapgram() {
 			return;
 		}
 		try {
+			setIsDownloading(true);
 			const dataUrl = await toPng(snippetRef.current, {
 				cacheBust: true,
 				pixelRatio: 2,
@@ -136,6 +137,8 @@ export default function CodeSnapgram() {
 			setTimeout(() => setShowAlert(null), 3000);
 		} catch (err) {
 			console.error('Error downloading image:', err);
+		} finally {
+			setIsDownloading(false);
 		}
 	};
 
@@ -144,6 +147,7 @@ export default function CodeSnapgram() {
 			return;
 		}
 		try {
+			setIsDownloading(true);
 			const dataUrl = await toPng(snippetRef.current, {
 				cacheBust: true,
 				pixelRatio: 2,
@@ -183,6 +187,8 @@ export default function CodeSnapgram() {
 			}
 		} catch (err) {
 			console.error('Error sharing image:', err);
+		} finally {
+			setIsDownloading(false);
 		}
 	};
 
@@ -279,7 +285,10 @@ export default function CodeSnapgram() {
 			trimmedCode.includes('=>') ||
 			trimmedCode.includes('var ') ||
 			trimmedCode.includes('let ') ||
-			trimmedCode.includes('const ')
+			trimmedCode.includes('const ') ||
+			trimmedCode.includes('console.') ||
+			trimmedCode.includes('return ') ||
+			trimmedCode.includes('if ')
 		) {
 			return 'javascript';
 		}
@@ -496,6 +505,29 @@ export default function CodeSnapgram() {
 														<div className='w-3 h-3 rounded-full bg-yellow-500'></div>
 														<div className='w-3 h-3 rounded-full bg-green-500'></div>
 													</div>
+													{!isDownloading && (
+														<TooltipProvider>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Button
+																		variant='ghost'
+																		size='icon'
+																		className='absolute top-2 right-2 text-gray-400 hover:text-white transition-colors'
+																		onClick={handleCopyCode}
+																	>
+																		{copied ? (
+																			<Check className='h-4 w-4' />
+																		) : (
+																			<Copy className='h-4 w-4' />
+																		)}
+																	</Button>
+																</TooltipTrigger>
+																<TooltipContent>
+																	<p>{copied ? 'Copied!' : 'Copy code'}</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													)}
 													<SyntaxHighlighter
 														language={language}
 														style={atomDark}
@@ -516,21 +548,6 @@ export default function CodeSnapgram() {
 													</div>
 												</div>
 											</div>
-										</div>
-										<div className='flex justify-end mt-4'>
-											<Button
-												variant='outline'
-												size='sm'
-												onClick={handleCopyCode}
-												className='mr-2'
-											>
-												{copied ? (
-													<Check className='w-4 h-4 mr-2' />
-												) : (
-													<Copy className='w-4 h-4 mr-2' />
-												)}
-												{copied ? 'Copied!' : 'Copy Code'}
-											</Button>
 										</div>
 									</TabsContent>
 									<TabsContent value='preview'>
