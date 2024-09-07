@@ -28,7 +28,8 @@ import {
 	Copy,
 	Check,
 	ChevronDown,
-	ChevronUp
+	ChevronUp,
+	Edit2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
@@ -75,8 +76,26 @@ export default function CodeSnapgram() {
 	const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 	const [isDownloading, setIsDownloading] = useState(false);
 	const [showFullCode, setShowFullCode] = useState(false);
-	const [imageSize, setImageSize] = useState({ width: 800, height: 600 });
 	const [showImageSizeDialog, setShowImageSizeDialog] = useState(false);
+	const [isEditing, setIsEditing] = useState(false);
+	const [isMobile, setIsMobile] = useState(false);
+	const [imageSize, setImageSize] = useState({
+		width: 600,
+		height: 400
+	});
+
+	useEffect(() => {
+		const checkMobile = () => {
+			setIsMobile(window.innerWidth < 768);
+			setImageSize({
+				width: window.innerWidth < 768 ? 300 : 600,
+				height: window.innerWidth < 768 ? 400 : 400
+			});
+		};
+		checkMobile();
+		window.addEventListener('resize', checkMobile);
+		return () => window.removeEventListener('resize', checkMobile);
+	}, []);
 
 	const handleGenerateSnippet = useCallback(async () => {
 		const beautifyCode = async (code: string, language: string) => {
@@ -89,7 +108,7 @@ export default function CodeSnapgram() {
 						formattedCode = await prettier.format(code, {
 							parser: language === 'javascript' ? 'babel' : 'typescript',
 							plugins: [parserBabel, parserTypescript],
-							proseWrap: 'always',
+							printWidth: Math.floor(imageSize.width / (fontSize * 0.6)),
 							semi: true,
 							singleQuote: true,
 							useTabs: true,
@@ -100,7 +119,7 @@ export default function CodeSnapgram() {
 						formattedCode = await prettier.format(code, {
 							parser: 'html',
 							plugins: [parserHtml],
-							proseWrap: 'always',
+							printWidth: Math.floor(imageSize.width / (fontSize * 0.6)),
 							useTabs: true,
 							tabWidth: 2
 						});
@@ -109,7 +128,7 @@ export default function CodeSnapgram() {
 						formattedCode = await prettier.format(code, {
 							parser: 'css',
 							plugins: [parserCss],
-							proseWrap: 'always',
+							printWidth: Math.floor(imageSize.width / (fontSize * 0.6)),
 							useTabs: true,
 							tabWidth: 2
 						});
@@ -132,6 +151,8 @@ export default function CodeSnapgram() {
 		code,
 		language,
 		autoFormat,
+		imageSize.width,
+		fontSize,
 		setGeneratedSnippet,
 		setPreviewContent,
 		setShowFullCode
@@ -142,15 +163,15 @@ export default function CodeSnapgram() {
 			return;
 		}
 		try {
+			setIsDownloading(true);
 			const dataUrl = await toPng(snippetRef.current, {
 				cacheBust: true,
 				pixelRatio: 2,
 				width: imageSize.width,
 				height: imageSize.height,
-				skipAutoScale: true,
 				style: {
 					transform: 'scale(1)',
-					transformOrigin: 'center'
+					transformOrigin: 'top left'
 				}
 			});
 			const link = document.createElement('a');
@@ -171,15 +192,15 @@ export default function CodeSnapgram() {
 			return;
 		}
 		try {
+			setIsDownloading(true);
 			const dataUrl = await toPng(snippetRef.current, {
 				cacheBust: true,
 				pixelRatio: 2,
 				width: imageSize.width,
 				height: imageSize.height,
-				skipAutoScale: true,
 				style: {
 					transform: 'scale(1)',
-					transformOrigin: 'center'
+					transformOrigin: 'top left'
 				}
 			});
 			const blob = await (await fetch(dataUrl)).blob();
@@ -227,6 +248,7 @@ export default function CodeSnapgram() {
 	}) => {
 		setImageSize(newSize);
 		setShowImageSizeDialog(false);
+		handleGenerateSnippet();
 	};
 
 	const openPreviewInNewWindow = () => {
@@ -274,6 +296,12 @@ export default function CodeSnapgram() {
 		setLanguage(detectedLang);
 	};
 
+	const handleGeneratedCodeChange = (
+		e: React.ChangeEvent<HTMLTextAreaElement>
+	) => {
+		setGeneratedSnippet(e.target.value);
+	};
+
 	useEffect(() => {
 		const handleKeyPress = (event: KeyboardEvent) => {
 			if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
@@ -285,7 +313,7 @@ export default function CodeSnapgram() {
 		return () => {
 			window.removeEventListener('keydown', handleKeyPress);
 		};
-	}, [code, language, autoFormat, fontSize, handleGenerateSnippet]);
+	}, [handleGenerateSnippet]);
 
 	return (
 		<motion.main
@@ -295,9 +323,9 @@ export default function CodeSnapgram() {
 			transition={{ duration: 0.5 }}
 		>
 			<div className='w-full max-w-6xl mx-auto'>
-				<div className='flex justify-between items-center mb-6'>
+				<div className='flex flex-col md:flex-row justify-between items-center mb-6 gap-4'>
 					<motion.h1
-						className='text-3xl md:text-4xl font-bold text-purple-800 dark:text-purple-300'
+						className='text-3xl md:text-4xl font-bold text-purple-800 dark:text-purple-300 text-center md:text-left'
 						initial={{ scale: 0.5, opacity: 0 }}
 						animate={{ scale: 1, opacity: 1 }}
 						transition={{ delay: 0.5, duration: 0.5 }}
@@ -347,7 +375,7 @@ export default function CodeSnapgram() {
 									onChange={handleCodeChange}
 								/>
 							</div>
-							<div className='grid grid-cols-2 gap-6'>
+							<div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
 								<div className='space-y-2'>
 									<Label
 										htmlFor='language-select'
@@ -394,7 +422,10 @@ export default function CodeSnapgram() {
 								<Switch
 									id='auto-format'
 									checked={autoFormat}
-									onCheckedChange={setAutoFormat}
+									onCheckedChange={(checked) => {
+										setAutoFormat(checked);
+										handleGenerateSnippet();
+									}}
 								/>
 								<Label
 									htmlFor='auto-format'
@@ -419,7 +450,7 @@ export default function CodeSnapgram() {
 								/>
 								{!isCustomMessagePaid && (
 									<p className='text-sm text-gray-500 dark:text-gray-400'>
-										Pay &#8377;25 to customize this message
+										Pay ₹25 to customize this message
 									</p>
 								)}
 							</div>
@@ -465,7 +496,7 @@ export default function CodeSnapgram() {
 										</TabsTrigger>
 									</TabsList>
 									<TabsContent value='snippet'>
-										<div className='relative w-full p-4 rounded-lg shadow-lg overflow-hidden'>
+										<div className='relative w-full overflow-hidden'>
 											<div
 												ref={snippetRef}
 												className='rounded-lg overflow-hidden shadow-2xl bg-gradient-to-br from-purple-500 to-pink-500 p-4'
@@ -481,69 +512,108 @@ export default function CodeSnapgram() {
 														<div className='w-3 h-3 rounded-full bg-green-500'></div>
 													</div>
 													{!isDownloading && (
-														<TooltipProvider>
-															<Tooltip>
-																<TooltipTrigger asChild>
-																	<Button
-																		variant='ghost'
-																		size='icon'
-																		className='absolute top-2 right-2 text-gray-400 hover:text-white transition-colors'
-																		onClick={handleCopyCode}
-																	>
-																		{copied ? (
-																			<Check className='h-4 w-4' />
-																		) : (
-																			<Copy className='h-4 w-4' />
-																		)}
-																	</Button>
-																</TooltipTrigger>
-																<TooltipContent>
-																	<p>{copied ? 'Copied!' : 'Copy code'}</p>
-																</TooltipContent>
-															</Tooltip>
-														</TooltipProvider>
+														<div className='absolute top-2 right-2 flex space-x-2'>
+															<TooltipProvider>
+																<Tooltip>
+																	<TooltipTrigger asChild>
+																		<Button
+																			variant='ghost'
+																			size='icon'
+																			className='text-gray-400 hover:text-white transition-colors'
+																			onClick={handleCopyCode}
+																		>
+																			{copied ? (
+																				<Check className='h-4 w-4' />
+																			) : (
+																				<Copy className='h-4 w-4' />
+																			)}
+																		</Button>
+																	</TooltipTrigger>
+																	<TooltipContent>
+																		<p>{copied ? 'Copied!' : 'Copy code'}</p>
+																	</TooltipContent>
+																</Tooltip>
+															</TooltipProvider>
+															<TooltipProvider>
+																<Tooltip>
+																	<TooltipTrigger asChild>
+																		<Button
+																			variant='ghost'
+																			size='icon'
+																			className='text-gray-400 hover:text-white transition-colors'
+																			onClick={() => setIsEditing(!isEditing)}
+																		>
+																			<Edit2 className='h-4 w-4' />
+																		</Button>
+																	</TooltipTrigger>
+																	<TooltipContent>
+																		<p>
+																			{isEditing ? 'Save changes' : 'Edit code'}
+																		</p>
+																	</TooltipContent>
+																</Tooltip>
+															</TooltipProvider>
+														</div>
 													)}
-													<SyntaxHighlighter
-														language={language}
-														style={atomDark}
-														customStyle={{
-															fontSize: `${fontSize}px`,
-															padding: '1rem',
-															borderRadius: '0.5rem',
-															background: 'transparent',
-															margin: 0,
-															flex: 1,
-															overflowY: 'auto',
-															maxHeight: showFullCode ? 'none' : '300px'
-														}}
-													>
-														{generatedSnippet}
-													</SyntaxHighlighter>
-													{!isDownloading && (
+													{isEditing ? (
+														<Textarea
+															value={generatedSnippet}
+															onChange={handleGeneratedCodeChange}
+															className='font-mono bg-transparent text-white h-full w-full resize-none border-none focus:ring-0'
+															style={{ fontSize: `${fontSize}px` }}
+														/>
+													) : (
 														<>
-															{generatedSnippet.length > 500 &&
-																!showFullCode && (
+															<SyntaxHighlighter
+																language={language}
+																style={atomDark}
+																customStyle={{
+																	fontSize: `${fontSize}px`,
+																	padding: '1rem',
+																	borderRadius: '0.5rem',
+																	background: 'transparent',
+																	margin: 0,
+																	flex: 1,
+																	overflowY: 'auto',
+																	maxHeight: showFullCode
+																		? 'none'
+																		: isMobile
+																			? '50vh'
+																			: imageSize.height - 80
+																}}
+																wrapLines={true}
+																wrapLongLines={true}
+															>
+																{showFullCode
+																	? generatedSnippet
+																	: generatedSnippet
+																			.split('\n')
+																			.slice(0, 15)
+																			.join('\n')}
+															</SyntaxHighlighter>
+															{!isDownloading &&
+																generatedSnippet.split('\n').length > 15 && (
 																	<Button
 																		variant='ghost'
 																		size='sm'
-																		className='mt-2 text-gray-400 hover:text-white transition-colors'
-																		onClick={() => setShowFullCode(true)}
+																		className='mt-2 text-gray-400 hover:text-white transition-colors self-center'
+																		onClick={() =>
+																			setShowFullCode(!showFullCode)
+																		}
 																	>
-																		View more{' '}
-																		<ChevronDown className='ml-1 h-4 w-4' />
+																		{showFullCode ? (
+																			<>
+																				View less{' '}
+																				<ChevronUp className='ml-1 h-4 w-4' />
+																			</>
+																		) : (
+																			<>
+																				View more{' '}
+																				<ChevronDown className='ml-1 h-4 w-4' />
+																			</>
+																		)}
 																	</Button>
 																)}
-															{showFullCode && (
-																<Button
-																	variant='ghost'
-																	size='sm'
-																	className='mt-2 text-gray-400 hover:text-white transition-colors'
-																	onClick={() => setShowFullCode(false)}
-																>
-																	View less{' '}
-																	<ChevronUp className='ml-1 h-4 w-4' />
-																</Button>
-															)}
 														</>
 													)}
 													<div className='text-[0.5rem] text-gray-400 opacity-75 font-semibold mt-2 text-center'>
@@ -587,26 +657,22 @@ export default function CodeSnapgram() {
 							)}
 							{generatedSnippet && activeTab === 'snippet' && (
 								<>
-									<div className='flex space-x-4 mt-6'>
+									<div className='flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-6'>
 										<Button
-											onClick={() => {
-												setIsDownloading(true);
-												handleDownload();
-											}}
+											onClick={handleDownload}
 											className='flex-1 bg-green-600 hover:bg-green-700 text-white transition-colors duration-200'
+											disabled={isDownloading}
 										>
 											<Download className='w-4 h-4 mr-2' />
-											Download
+											{isDownloading ? 'Downloading...' : 'Download'}
 										</Button>
 										<Button
-											onClick={() => {
-												setIsDownloading(true);
-												handleShare();
-											}}
+											onClick={handleShare}
 											className='flex-1 bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-200'
+											disabled={isDownloading}
 										>
 											<Share2 className='w-4 h-4 mr-2' />
-											Share
+											{isDownloading ? 'Sharing...' : 'Share'}
 										</Button>
 										<Button
 											onClick={() => setShowImageSizeDialog(true)}
@@ -672,7 +738,7 @@ export default function CodeSnapgram() {
 					<DialogHeader>
 						<DialogTitle>Payment Required</DialogTitle>
 						<DialogDescription>
-							To customize the message, please pay &#8377;25 using UPI.
+							To customize the message, please pay ₹25 using UPI.
 						</DialogDescription>
 					</DialogHeader>
 					<div className='space-y-4'>
@@ -686,7 +752,7 @@ export default function CodeSnapgram() {
 							/>
 						</div>
 						<Button onClick={handlePayment} className='w-full'>
-							Pay &#8377;25
+							Pay ₹25
 						</Button>
 					</div>
 				</DialogContent>
