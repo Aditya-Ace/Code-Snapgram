@@ -53,6 +53,7 @@ import {
 	DialogHeader,
 	DialogTitle
 } from '@/components/ui/dialog';
+import { detectLanguage } from '@/lib/utils';
 
 export default function CodeSnapgram() {
 	const [code, setCode] = useState('');
@@ -130,7 +131,6 @@ export default function CodeSnapgram() {
 			return;
 		}
 		try {
-			setIsDownloading(true);
 			const dataUrl = await toPng(snippetRef.current, {
 				cacheBust: true,
 				pixelRatio: 2,
@@ -160,7 +160,6 @@ export default function CodeSnapgram() {
 			return;
 		}
 		try {
-			setIsDownloading(true);
 			const dataUrl = await toPng(snippetRef.current, {
 				cacheBust: true,
 				pixelRatio: 2,
@@ -172,12 +171,10 @@ export default function CodeSnapgram() {
 					transformOrigin: 'center'
 				}
 			});
-
 			const blob = await (await fetch(dataUrl)).blob();
 			const file = new File([blob], 'code-snippet.png', {
 				type: 'image/png'
 			});
-
 			if (navigator.canShare && navigator.canShare({ files: [file] })) {
 				navigator
 					.share({
@@ -257,65 +254,6 @@ export default function CodeSnapgram() {
 		setShowPaymentDialog(false);
 		setShowAlert('payment');
 		setTimeout(() => setShowAlert(null), 3000);
-	};
-
-	const detectLanguage = (code: string): string => {
-		const trimmedCode = code.trim().toLowerCase();
-		if (
-			trimmedCode.includes('include') ||
-			trimmedCode.includes('iostream') ||
-			trimmedCode.includes('using namespace std') ||
-			trimmedCode.includes('int main()') ||
-			trimmedCode.includes('cout') ||
-			trimmedCode.includes('cin') ||
-			trimmedCode.includes('return 0') ||
-			trimmedCode.includes('return 0;')
-		) {
-			return 'cpp';
-		}
-		if (
-			trimmedCode.startsWith('<!doctype html') ||
-			trimmedCode.startsWith('<html') ||
-			trimmedCode.startsWith('<head') ||
-			trimmedCode.startsWith('<body') ||
-			trimmedCode.startsWith('<div') ||
-			trimmedCode.startsWith('<span') ||
-			trimmedCode.startsWith('<a') ||
-			trimmedCode.startsWith('<p') ||
-			trimmedCode.startsWith('<h1')
-		) {
-			return 'html';
-		}
-		if (
-			trimmedCode.includes('{') &&
-			trimmedCode.includes('}') &&
-			trimmedCode.includes(':')
-		) {
-			return 'css';
-		}
-		if (
-			trimmedCode.includes(':') &&
-			(trimmedCode.includes('string') ||
-				trimmedCode.includes('number') ||
-				trimmedCode.includes('boolean') ||
-				trimmedCode.includes('interface') ||
-				trimmedCode.includes('type'))
-		) {
-			return 'typescript';
-		}
-		if (
-			trimmedCode.includes('function') ||
-			trimmedCode.includes('=>') ||
-			trimmedCode.includes('var ') ||
-			trimmedCode.includes('let ') ||
-			trimmedCode.includes('const ') ||
-			trimmedCode.includes('console.') ||
-			trimmedCode.includes('return ') ||
-			trimmedCode.includes('if ')
-		) {
-			return 'javascript';
-		}
-		return 'plaintext';
 	};
 
 	const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -570,25 +508,32 @@ export default function CodeSnapgram() {
 													>
 														{generatedSnippet}
 													</SyntaxHighlighter>
-													{generatedSnippet.length > 500 && !showFullCode && (
-														<Button
-															variant='ghost'
-															size='sm'
-															className='mt-2 text-gray-400 hover:text-white transition-colors'
-															onClick={() => setShowFullCode(true)}
-														>
-															View more <ChevronDown className='ml-1 h-4 w-4' />
-														</Button>
-													)}
-													{showFullCode && (
-														<Button
-															variant='ghost'
-															size='sm'
-															className='mt-2 text-gray-400 hover:text-white transition-colors'
-															onClick={() => setShowFullCode(false)}
-														>
-															View less <ChevronUp className='ml-1 h-4 w-4' />
-														</Button>
+													{!isDownloading && (
+														<>
+															{generatedSnippet.length > 500 &&
+																!showFullCode && (
+																	<Button
+																		variant='ghost'
+																		size='sm'
+																		className='mt-2 text-gray-400 hover:text-white transition-colors'
+																		onClick={() => setShowFullCode(true)}
+																	>
+																		View more{' '}
+																		<ChevronDown className='ml-1 h-4 w-4' />
+																	</Button>
+																)}
+															{showFullCode && (
+																<Button
+																	variant='ghost'
+																	size='sm'
+																	className='mt-2 text-gray-400 hover:text-white transition-colors'
+																	onClick={() => setShowFullCode(false)}
+																>
+																	View less{' '}
+																	<ChevronUp className='ml-1 h-4 w-4' />
+																</Button>
+															)}
+														</>
 													)}
 													<div className='text-[0.5rem] text-gray-400 opacity-75 font-semibold mt-2 text-center'>
 														{customMessage}
@@ -633,14 +578,20 @@ export default function CodeSnapgram() {
 								<>
 									<div className='flex space-x-4 mt-6'>
 										<Button
-											onClick={handleDownload}
+											onClick={() => {
+												setIsDownloading(true);
+												handleDownload();
+											}}
 											className='flex-1 bg-green-600 hover:bg-green-700 text-white transition-colors duration-200'
 										>
 											<Download className='w-4 h-4 mr-2' />
 											Download
 										</Button>
 										<Button
-											onClick={handleShare}
+											onClick={() => {
+												setIsDownloading(true);
+												handleShare();
+											}}
 											className='flex-1 bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-200'
 										>
 											<Share2 className='w-4 h-4 mr-2' />
@@ -710,7 +661,7 @@ export default function CodeSnapgram() {
 					<DialogHeader>
 						<DialogTitle>Payment Required</DialogTitle>
 						<DialogDescription>
-							To customize the message, please pay 25Rs using UPI.
+							To customize the message, please pay Pay &#8377;25 using UPI.
 						</DialogDescription>
 					</DialogHeader>
 					<div className='space-y-4'>
