@@ -477,16 +477,16 @@ export default function CodeSnapgram() {
 										<div className='relative w-full p-4 rounded-lg shadow-lg overflow-hidden bg-white h-80'>
 											<iframe
 												srcDoc={`
-                          <html>
-                            <head>
-                              <style>${language === 'css' ? previewContent : ''}</style>
-                            </head>
-                            <body>
-                              ${language === 'html' ? previewContent : ''}
-                              ${['javascript', 'typescript'].includes(language) ? `<script>${previewContent}</script>` : ''}
-                            </body>
-                          </html>
-                        `}
+														<html>
+															<head>
+															<style>${language === 'css' ? previewContent : ''}</style>
+															</head>
+															<body>
+															${language === 'html' ? previewContent : ''}
+															${['javascript', 'typescript'].includes(language) ? `<script>${previewContent}</script>` : ''}
+															</body>
+														</html>
+														`}
 												className='w-full h-full border-none'
 												title='Code Preview'
 												sandbox='allow-scripts'
@@ -580,7 +580,7 @@ export default function CodeSnapgram() {
 					<DialogHeader>
 						<DialogTitle>Payment Required</DialogTitle>
 						<DialogDescription>
-							To customize the message, please pay 25Rs using UPI.
+							To customize the message, please pay Rs.25 using UPI.
 						</DialogDescription>
 					</DialogHeader>
 					<div className='space-y-4'>
