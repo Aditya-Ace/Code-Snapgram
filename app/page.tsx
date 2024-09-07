@@ -233,6 +233,18 @@ export default function CodeSnapgram() {
 	const detectLanguage = (code: string): string => {
 		const trimmedCode = code.trim().toLowerCase();
 		if (
+			trimmedCode.includes('include') ||
+			trimmedCode.includes('iostream') ||
+			trimmedCode.includes('using namespace std') ||
+			trimmedCode.includes('int main()') ||
+			trimmedCode.includes('cout') ||
+			trimmedCode.includes('cin') ||
+			trimmedCode.includes('return 0') ||
+			trimmedCode.includes('return 0;')
+		) {
+			return 'cpp';
+		}
+		if (
 			trimmedCode.startsWith('<!doctype html') ||
 			trimmedCode.startsWith('<html') ||
 			trimmedCode.startsWith('<head') ||
@@ -248,7 +260,7 @@ export default function CodeSnapgram() {
 		if (
 			trimmedCode.includes('{') &&
 			trimmedCode.includes('}') &&
-			!trimmedCode.includes('function')
+			trimmedCode.includes(':')
 		) {
 			return 'css';
 		}
@@ -270,19 +282,6 @@ export default function CodeSnapgram() {
 			trimmedCode.includes('const ')
 		) {
 			return 'javascript';
-		}
-		// for c++
-		if (
-			trimmedCode.includes('include') ||
-			trimmedCode.includes('iostream') ||
-			trimmedCode.includes('using namespace std') ||
-			trimmedCode.includes('int main()') ||
-			trimmedCode.includes('cout') ||
-			trimmedCode.includes('cin') ||
-			trimmedCode.includes('return 0') ||
-			trimmedCode.includes('return 0;')
-		) {
-			return 'cpp';
 		}
 		return 'plaintext';
 	};
