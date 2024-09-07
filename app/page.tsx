@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -26,7 +26,9 @@ import {
 	Sparkles,
 	ExternalLink,
 	Copy,
-	Check
+	Check,
+	ChevronDown,
+	ChevronUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
@@ -71,46 +73,57 @@ export default function CodeSnapgram() {
 	const [upiId, setUpiId] = useState('');
 	const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 	const [isDownloading, setIsDownloading] = useState(false);
+	const [showFullCode, setShowFullCode] = useState(false);
+	const [imageSize, setImageSize] = useState({ width: 800, height: 600 });
+	const [showImageSizeDialog, setShowImageSizeDialog] = useState(false);
 
-	const beautifyCode = async (code: string, language: string) => {
-		if (!autoFormat) return code;
-		try {
-			let formattedCode = code;
-			switch (language) {
-				case 'javascript':
-				case 'typescript':
-					formattedCode = await prettier.format(code, {
-						parser: language === 'javascript' ? 'babel' : 'typescript',
-						plugins: [parserBabel, parserTypescript]
-					});
-					break;
-				case 'html':
-					formattedCode = await prettier.format(code, {
-						parser: 'html',
-						plugins: [parserHtml]
-					});
-					break;
-				case 'css':
-					formattedCode = await prettier.format(code, {
-						parser: 'css',
-						plugins: [parserCss]
-					});
-					break;
-				default:
-					return code;
+	const handleGenerateSnippet = useCallback(async () => {
+		const beautifyCode = async (code: string, language: string) => {
+			if (!autoFormat) return code;
+			try {
+				let formattedCode = code;
+				switch (language) {
+					case 'javascript':
+					case 'typescript':
+						formattedCode = await prettier.format(code, {
+							parser: language === 'javascript' ? 'babel' : 'typescript',
+							plugins: [parserBabel, parserTypescript]
+						});
+						break;
+					case 'html':
+						formattedCode = await prettier.format(code, {
+							parser: 'html',
+							plugins: [parserHtml]
+						});
+						break;
+					case 'css':
+						formattedCode = await prettier.format(code, {
+							parser: 'css',
+							plugins: [parserCss]
+						});
+						break;
+					default:
+						return code;
+				}
+				return formattedCode.trim();
+			} catch (error) {
+				console.error('Error beautifying code:', error);
+				return code;
 			}
-			return formattedCode.trim();
-		} catch (error) {
-			console.error('Error beautifying code:', error);
-			return code;
-		}
-	};
+		};
 
-	const handleGenerateSnippet = async () => {
 		const beautifiedCode = await beautifyCode(code, language);
 		setGeneratedSnippet(beautifiedCode);
 		setPreviewContent(beautifiedCode);
-	};
+		setShowFullCode(false);
+	}, [
+		code,
+		language,
+		autoFormat,
+		setGeneratedSnippet,
+		setPreviewContent,
+		setShowFullCode
+	]);
 
 	const handleDownload = async () => {
 		if (snippetRef.current === null) {
@@ -121,8 +134,8 @@ export default function CodeSnapgram() {
 			const dataUrl = await toPng(snippetRef.current, {
 				cacheBust: true,
 				pixelRatio: 2,
-				width: snippetRef.current.clientWidth,
-				height: snippetRef.current.clientHeight,
+				width: imageSize.width,
+				height: imageSize.height,
 				skipAutoScale: true,
 				style: {
 					transform: 'scale(1)',
@@ -151,8 +164,8 @@ export default function CodeSnapgram() {
 			const dataUrl = await toPng(snippetRef.current, {
 				cacheBust: true,
 				pixelRatio: 2,
-				width: snippetRef.current.clientWidth,
-				height: snippetRef.current.clientHeight,
+				width: imageSize.width,
+				height: imageSize.height,
 				skipAutoScale: true,
 				style: {
 					transform: 'scale(1)',
@@ -161,7 +174,9 @@ export default function CodeSnapgram() {
 			});
 
 			const blob = await (await fetch(dataUrl)).blob();
-			const file = new File([blob], 'code-snippet.png', { type: 'image/png' });
+			const file = new File([blob], 'code-snippet.png', {
+				type: 'image/png'
+			});
 
 			if (navigator.canShare && navigator.canShare({ files: [file] })) {
 				navigator
@@ -198,6 +213,14 @@ export default function CodeSnapgram() {
 		setTimeout(() => setCopied(false), 2000);
 	};
 
+	const handleImageSizeChange = (newSize: {
+		width: number;
+		height: number;
+	}) => {
+		setImageSize(newSize);
+		setShowImageSizeDialog(false);
+	};
+
 	const openPreviewInNewWindow = () => {
 		const previewWindow = window.open('', '_blank');
 		if (previewWindow) {
@@ -228,7 +251,7 @@ export default function CodeSnapgram() {
 	};
 
 	const handlePayment = () => {
-		// In a real-world scenario, you would integrate with a UPI payment gateway here
+		// In a real-world scenario, we would integrate with a UPI payment gateway here
 		// For this example, we'll simulate a successful payment
 		setIsCustomMessagePaid(true);
 		setShowPaymentDialog(false);
@@ -313,7 +336,7 @@ export default function CodeSnapgram() {
 		return () => {
 			window.removeEventListener('keydown', handleKeyPress);
 		};
-	}, [code, language]);
+	}, [code, language, autoFormat, fontSize, handleGenerateSnippet]);
 
 	return (
 		<motion.main
@@ -447,7 +470,7 @@ export default function CodeSnapgram() {
 								/>
 								{!isCustomMessagePaid && (
 									<p className='text-sm text-gray-500 dark:text-gray-400'>
-										Pay 25Rs to customize this message
+										Pay &#8377;25 to customize this message
 									</p>
 								)}
 							</div>
@@ -497,7 +520,10 @@ export default function CodeSnapgram() {
 											<div
 												ref={snippetRef}
 												className='rounded-lg overflow-hidden shadow-2xl bg-gradient-to-br from-purple-500 to-pink-500 p-4'
-												style={{ height: 'auto' }}
+												style={{
+													width: imageSize.width,
+													height: imageSize.height
+												}}
 											>
 												<div className='rounded-lg overflow-y-auto bg-gray-900 p-4 relative flex flex-col h-full'>
 													<div className='absolute top-2 left-2 flex space-x-1'>
@@ -538,11 +564,32 @@ export default function CodeSnapgram() {
 															background: 'transparent',
 															margin: 0,
 															flex: 1,
-															overflowY: 'auto'
+															overflowY: 'auto',
+															maxHeight: showFullCode ? 'none' : '300px'
 														}}
 													>
 														{generatedSnippet}
 													</SyntaxHighlighter>
+													{generatedSnippet.length > 500 && !showFullCode && (
+														<Button
+															variant='ghost'
+															size='sm'
+															className='mt-2 text-gray-400 hover:text-white transition-colors'
+															onClick={() => setShowFullCode(true)}
+														>
+															View more <ChevronDown className='ml-1 h-4 w-4' />
+														</Button>
+													)}
+													{showFullCode && (
+														<Button
+															variant='ghost'
+															size='sm'
+															className='mt-2 text-gray-400 hover:text-white transition-colors'
+															onClick={() => setShowFullCode(false)}
+														>
+															View less <ChevronUp className='ml-1 h-4 w-4' />
+														</Button>
+													)}
 													<div className='text-[0.5rem] text-gray-400 opacity-75 font-semibold mt-2 text-center'>
 														{customMessage}
 													</div>
@@ -554,16 +601,16 @@ export default function CodeSnapgram() {
 										<div className='relative w-full p-4 rounded-lg shadow-lg overflow-hidden bg-white h-80'>
 											<iframe
 												srcDoc={`
-                          <html>
-                            <head>
-                              <style>${language === 'css' ? previewContent : ''}</style>
-                            </head>
-                            <body>
-                              ${language === 'html' ? previewContent : ''}
-                              ${['javascript', 'typescript'].includes(language) ? `<script>${previewContent}</script>` : ''}
-                            </body>
-                          </html>
-                        `}
+														<html>
+															<head>
+															<style>${language === 'css' ? previewContent : ''}</style>
+															</head>
+															<body>
+															${language === 'html' ? previewContent : ''}
+															${['javascript', 'typescript'].includes(language) ? `<script>${previewContent}</script>` : ''}
+															</body>
+														</html>
+														`}
 												className='w-full h-full border-none'
 												title='Code Preview'
 												sandbox='allow-scripts'
@@ -598,6 +645,12 @@ export default function CodeSnapgram() {
 										>
 											<Share2 className='w-4 h-4 mr-2' />
 											Share
+										</Button>
+										<Button
+											onClick={() => setShowImageSizeDialog(true)}
+											className='flex-1 bg-purple-600 hover:bg-purple-700 text-white transition-colors duration-200'
+										>
+											Set Image Size
 										</Button>
 									</div>
 									<div className='text-sm text-gray-600 dark:text-gray-400 mt-2'>
@@ -671,7 +724,47 @@ export default function CodeSnapgram() {
 							/>
 						</div>
 						<Button onClick={handlePayment} className='w-full'>
-							Pay 25Rs
+							Pay &#8377;25
+						</Button>
+					</div>
+				</DialogContent>
+			</Dialog>
+			<Dialog open={showImageSizeDialog} onOpenChange={setShowImageSizeDialog}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Set Image Size</DialogTitle>
+						<DialogDescription>
+							Choose the size for your generated image.
+						</DialogDescription>
+					</DialogHeader>
+					<div className='space-y-4'>
+						<div className='space-y-2'>
+							<Label htmlFor='image-width'>Width (px)</Label>
+							<Input
+								id='image-width'
+								type='number'
+								value={imageSize.width}
+								onChange={(e) =>
+									setImageSize({ ...imageSize, width: Number(e.target.value) })
+								}
+							/>
+						</div>
+						<div className='space-y-2'>
+							<Label htmlFor='image-height'>Height (px)</Label>
+							<Input
+								id='image-height'
+								type='number'
+								value={imageSize.height}
+								onChange={(e) =>
+									setImageSize({ ...imageSize, height: Number(e.target.value) })
+								}
+							/>
+						</div>
+						<Button
+							onClick={() => handleImageSizeChange(imageSize)}
+							className='w-full'
+						>
+							Apply Size
 						</Button>
 					</div>
 				</DialogContent>
