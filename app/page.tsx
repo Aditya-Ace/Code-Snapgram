@@ -230,6 +230,57 @@ export default function CodeSnapgram() {
 		setTimeout(() => setShowAlert(null), 3000);
 	};
 
+	const detectLanguage = (code: string): string => {
+		const trimmedCode = code.trim().toLowerCase();
+		if (
+			trimmedCode.startsWith('<!doctype html') ||
+			trimmedCode.startsWith('<html') ||
+			trimmedCode.startsWith('<head') ||
+			trimmedCode.startsWith('<body') ||
+			trimmedCode.startsWith('<div') ||
+			trimmedCode.startsWith('<span') ||
+			trimmedCode.startsWith('<a') ||
+			trimmedCode.startsWith('<p') ||
+			trimmedCode.startsWith('<h1')
+		) {
+			return 'html';
+		}
+		if (
+			trimmedCode.includes('{') &&
+			trimmedCode.includes('}') &&
+			!trimmedCode.includes('function')
+		) {
+			return 'css';
+		}
+		if (
+			trimmedCode.includes(':') &&
+			(trimmedCode.includes('string') ||
+				trimmedCode.includes('number') ||
+				trimmedCode.includes('boolean') ||
+				trimmedCode.includes('interface') ||
+				trimmedCode.includes('type'))
+		) {
+			return 'typescript';
+		}
+		if (
+			trimmedCode.includes('function') ||
+			trimmedCode.includes('=>') ||
+			trimmedCode.includes('var ') ||
+			trimmedCode.includes('let ') ||
+			trimmedCode.includes('const ')
+		) {
+			return 'javascript';
+		}
+		return 'plaintext';
+	};
+
+	const handleCodeChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+		const newCode = e.target.value;
+		setCode(newCode);
+		const detectedLang = detectLanguage(newCode);
+		setLanguage(detectedLang);
+	};
+
 	useEffect(() => {
 		const handleKeyPress = (event: KeyboardEvent) => {
 			if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
@@ -300,7 +351,7 @@ export default function CodeSnapgram() {
 									placeholder='Enter your code here'
 									className='font-mono bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200 h-64 md:h-80 border-2 border-purple-300 dark:border-purple-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200'
 									value={code}
-									onChange={(e) => setCode(e.target.value)}
+									onChange={handleCodeChange}
 								/>
 							</div>
 							<div className='grid grid-cols-2 gap-6'>
@@ -309,7 +360,7 @@ export default function CodeSnapgram() {
 										htmlFor='language-select'
 										className='text-gray-700 dark:text-gray-300'
 									>
-										Language
+										Language (Auto-detected)
 									</Label>
 									<Select value={language} onValueChange={setLanguage}>
 										<SelectTrigger
@@ -323,10 +374,6 @@ export default function CodeSnapgram() {
 											<SelectItem value='typescript'>TypeScript</SelectItem>
 											<SelectItem value='html'>HTML</SelectItem>
 											<SelectItem value='css'>CSS</SelectItem>
-											<SelectItem value='python'>Python</SelectItem>
-											<SelectItem value='java'>Java</SelectItem>
-											<SelectItem value='csharp'>C#</SelectItem>
-											<SelectItem value='cpp'>C++</SelectItem>
 											<SelectItem value='plaintext'>Other</SelectItem>
 										</SelectContent>
 									</Select>
@@ -477,16 +524,16 @@ export default function CodeSnapgram() {
 										<div className='relative w-full p-4 rounded-lg shadow-lg overflow-hidden bg-white h-80'>
 											<iframe
 												srcDoc={`
-														<html>
-															<head>
-															<style>${language === 'css' ? previewContent : ''}</style>
-															</head>
-															<body>
-															${language === 'html' ? previewContent : ''}
-															${['javascript', 'typescript'].includes(language) ? `<script>${previewContent}</script>` : ''}
-															</body>
-														</html>
-														`}
+                          <html>
+                            <head>
+                              <style>${language === 'css' ? previewContent : ''}</style>
+                            </head>
+                            <body>
+                              ${language === 'html' ? previewContent : ''}
+                              ${['javascript', 'typescript'].includes(language) ? `<script>${previewContent}</script>` : ''}
+                            </body>
+                          </html>
+                        `}
 												className='w-full h-full border-none'
 												title='Code Preview'
 												sandbox='allow-scripts'
@@ -580,7 +627,7 @@ export default function CodeSnapgram() {
 					<DialogHeader>
 						<DialogTitle>Payment Required</DialogTitle>
 						<DialogDescription>
-							To customize the message, please pay Rs.25 using UPI.
+							To customize the message, please pay 25Rs using UPI.
 						</DialogDescription>
 					</DialogHeader>
 					<div className='space-y-4'>
