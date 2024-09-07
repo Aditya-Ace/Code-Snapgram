@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -13,10 +13,21 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toPng } from 'html-to-image';
-import { Download, Share2, Moon, Sun, Info, Sparkles } from 'lucide-react';
+import {
+	Download,
+	Share2,
+	Moon,
+	Sun,
+	Info,
+	Sparkles,
+	ExternalLink,
+	Copy,
+	Check
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import prettier from 'prettier/standalone';
@@ -32,34 +43,45 @@ import {
 	TooltipTrigger
 } from '@/components/ui/tooltip';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger
+} from '@/components/ui/dialog';
 
 export default function CodeSnapgram() {
 	const [code, setCode] = useState('');
 	const [language, setLanguage] = useState('javascript');
 	const [fontSize, setFontSize] = useState(14);
 	const [generatedSnippet, setGeneratedSnippet] = useState('');
-	const [previewHtml, setPreviewHtml] = useState('');
-	const [previewCss, setPreviewCss] = useState('');
-	const [previewJs, setPreviewJs] = useState('');
+	const [previewContent, setPreviewContent] = useState('');
 	const snippetRef = useRef<HTMLDivElement>(null);
 	const { theme, setTheme } = useTheme();
-	const [showAlert, setShowAlert] = useState(false);
+	const [showAlert, setShowAlert] = useState<string | null>(null);
 	const [activeTab, setActiveTab] = useState('snippet');
+	const [autoFormat, setAutoFormat] = useState(true);
+	const [copied, setCopied] = useState(false);
+	const [customMessage, setCustomMessage] = useState(
+		'Made with ❤️ using Next.js by Aditya'
+	);
+	const [isCustomMessagePaid, setIsCustomMessagePaid] = useState(false);
+	const [upiId, setUpiId] = useState('');
+	const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
 	const beautifyCode = async (code: string, language: string) => {
+		if (!autoFormat) return code;
 		try {
 			let formattedCode = code;
 			switch (language) {
 				case 'javascript':
-					formattedCode = await prettier.format(code, {
-						parser: 'babel',
-						plugins: [parserBabel]
-					});
-					break;
 				case 'typescript':
 					formattedCode = await prettier.format(code, {
-						parser: 'typescript',
-						plugins: [parserTypescript]
+						parser: language === 'javascript' ? 'babel' : 'typescript',
+						plugins: [parserBabel, parserTypescript]
 					});
 					break;
 				case 'html':
@@ -85,17 +107,9 @@ export default function CodeSnapgram() {
 	};
 
 	const handleGenerateSnippet = async () => {
-		setLanguage(language);
 		const beautifiedCode = await beautifyCode(code, language);
 		setGeneratedSnippet(beautifiedCode);
-
-		if (language === 'html') {
-			setPreviewHtml(beautifiedCode);
-		} else if (language === 'css') {
-			setPreviewCss(beautifiedCode);
-		} else if (language === 'javascript' || language === 'typescript') {
-			setPreviewJs(beautifiedCode);
-		}
+		setPreviewContent(beautifiedCode);
 	};
 
 	const handleDownload = async () => {
@@ -118,8 +132,8 @@ export default function CodeSnapgram() {
 			link.download = 'code-snippet.png';
 			link.href = dataUrl;
 			link.click();
-			setShowAlert(true);
-			setTimeout(() => setShowAlert(false), 3000);
+			setShowAlert('download');
+			setTimeout(() => setShowAlert(null), 3000);
 		} catch (err) {
 			console.error('Error downloading image:', err);
 		}
@@ -153,8 +167,8 @@ export default function CodeSnapgram() {
 						files: [file]
 					})
 					.then(() => {
-						setShowAlert(true);
-						setTimeout(() => setShowAlert(false), 3000);
+						setShowAlert('share');
+						setTimeout(() => setShowAlert(null), 3000);
 					})
 					.catch(console.error);
 			} else {
@@ -164,13 +178,70 @@ export default function CodeSnapgram() {
 				document.body.appendChild(link);
 				link.click();
 				document.body.removeChild(link);
-				setShowAlert(true);
-				setTimeout(() => setShowAlert(false), 3000);
+				setShowAlert('share');
+				setTimeout(() => setShowAlert(null), 3000);
 			}
 		} catch (err) {
 			console.error('Error sharing image:', err);
 		}
 	};
+
+	const handleCopyCode = () => {
+		navigator.clipboard.writeText(generatedSnippet);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
+	};
+
+	const openPreviewInNewWindow = () => {
+		const previewWindow = window.open('', '_blank');
+		if (previewWindow) {
+			previewWindow.document.write(`
+        <html>
+          <head>
+            <title>Code Preview</title>
+            ${language === 'css' ? `<style>${previewContent}</style>` : ''}
+          </head>
+          <body>
+            ${language === 'html' ? previewContent : ''}
+            ${['javascript', 'typescript'].includes(language) ? `<script>${previewContent}</script>` : ''}
+          </body>
+        </html>
+      `);
+			previewWindow.document.close();
+		}
+	};
+
+	const handleCustomMessageChange = (
+		e: React.ChangeEvent<HTMLInputElement>
+	) => {
+		if (isCustomMessagePaid) {
+			setCustomMessage(e.target.value);
+		} else {
+			setShowPaymentDialog(true);
+		}
+	};
+
+	const handlePayment = () => {
+		// In a real-world scenario, you would integrate with a UPI payment gateway here
+		// For this example, we'll simulate a successful payment
+		setIsCustomMessagePaid(true);
+		setShowPaymentDialog(false);
+		setShowAlert('payment');
+		setTimeout(() => setShowAlert(null), 3000);
+	};
+
+	useEffect(() => {
+		const handleKeyPress = (event: KeyboardEvent) => {
+			if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+				handleGenerateSnippet();
+			}
+		};
+
+		window.addEventListener('keydown', handleKeyPress);
+		return () => {
+			window.removeEventListener('keydown', handleKeyPress);
+		};
+	}, [code, language]);
 
 	return (
 		<motion.main
@@ -278,11 +349,44 @@ export default function CodeSnapgram() {
 									/>
 								</div>
 							</div>
+							<div className='flex items-center space-x-2'>
+								<Switch
+									id='auto-format'
+									checked={autoFormat}
+									onCheckedChange={setAutoFormat}
+								/>
+								<Label
+									htmlFor='auto-format'
+									className='text-gray-700 dark:text-gray-300'
+								>
+									Auto-format code
+								</Label>
+							</div>
+							<div className='space-y-2'>
+								<Label
+									htmlFor='custom-message'
+									className='text-gray-700 dark:text-gray-300'
+								>
+									Custom Message
+								</Label>
+								<Input
+									id='custom-message'
+									value={customMessage}
+									onChange={handleCustomMessageChange}
+									placeholder='Enter your custom message'
+									className='bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-2 border-purple-300 dark:border-purple-600 focus:ring-2 focus:ring-purple-500 focus:border-transparent'
+								/>
+								{!isCustomMessagePaid && (
+									<p className='text-sm text-gray-500 dark:text-gray-400'>
+										Pay 25Rs to customize this message
+									</p>
+								)}
+							</div>
 							<Button
 								className='w-full bg-purple-600 hover:bg-purple-700 text-white transition-colors duration-200'
 								onClick={handleGenerateSnippet}
 							>
-								Generate Snippet
+								Generate Snippet (Ctrl/Cmd + Enter)
 							</Button>
 						</motion.div>
 						<motion.div
@@ -348,10 +452,25 @@ export default function CodeSnapgram() {
 														{generatedSnippet}
 													</SyntaxHighlighter>
 													<div className='text-[0.5rem] text-gray-400 opacity-75 font-semibold mt-2 text-center'>
-														Made with ❤️ using Next.js by Aditya
+														{customMessage}
 													</div>
 												</div>
 											</div>
+										</div>
+										<div className='flex justify-end mt-4'>
+											<Button
+												variant='outline'
+												size='sm'
+												onClick={handleCopyCode}
+												className='mr-2'
+											>
+												{copied ? (
+													<Check className='w-4 h-4 mr-2' />
+												) : (
+													<Copy className='w-4 h-4 mr-2' />
+												)}
+												{copied ? 'Copied!' : 'Copy Code'}
+											</Button>
 										</div>
 									</TabsContent>
 									<TabsContent value='preview'>
@@ -360,18 +479,28 @@ export default function CodeSnapgram() {
 												srcDoc={`
                           <html>
                             <head>
-                              <style>${previewCss}</style>
+                              <style>${language === 'css' ? previewContent : ''}</style>
                             </head>
                             <body>
-                              ${previewHtml}
-                              <script>${previewJs}</script>
+                              ${language === 'html' ? previewContent : ''}
+                              ${['javascript', 'typescript'].includes(language) ? `<script>${previewContent}</script>` : ''}
                             </body>
                           </html>
                         `}
 												className='w-full h-full border-none'
-												title='HTML/CSS/JS Preview'
+												title='Code Preview'
 												sandbox='allow-scripts'
 											/>
+										</div>
+										<div className='flex justify-end mt-4'>
+											<Button
+												variant='outline'
+												size='sm'
+												onClick={openPreviewInNewWindow}
+											>
+												<ExternalLink className='w-4 h-4 mr-2' />
+												Open in New Window
+											</Button>
 										</div>
 									</TabsContent>
 								</Tabs>
@@ -435,13 +564,41 @@ export default function CodeSnapgram() {
 							<Info className='h-4 w-4' />
 							<AlertTitle>Success!</AlertTitle>
 							<AlertDescription>
-								Your code snippet has been {showAlert ? 'downloaded' : 'shared'}{' '}
-								successfully.
+								{showAlert === 'download' &&
+									'Your code snippet has been downloaded successfully.'}
+								{showAlert === 'share' &&
+									'Your code snippet has been shared successfully.'}
+								{showAlert === 'payment' &&
+									'Payment successful! You can now customize your message.'}
 							</AlertDescription>
 						</Alert>
 					</motion.div>
 				)}
 			</AnimatePresence>
+			<Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Payment Required</DialogTitle>
+						<DialogDescription>
+							To customize the message, please pay 25Rs using UPI.
+						</DialogDescription>
+					</DialogHeader>
+					<div className='space-y-4'>
+						<div className='space-y-2'>
+							<Label htmlFor='upi-id'>UPI ID</Label>
+							<Input
+								id='upi-id'
+								value={upiId}
+								onChange={(e) => setUpiId(e.target.value)}
+								placeholder='Enter your UPI ID'
+							/>
+						</div>
+						<Button onClick={handlePayment} className='w-full'>
+							Pay 25Rs
+						</Button>
+					</div>
+				</DialogContent>
+			</Dialog>
 		</motion.main>
 	);
 }
